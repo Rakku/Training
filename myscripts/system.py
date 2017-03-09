@@ -16,11 +16,28 @@ def pwd():
 
 
 def cd(path):
+    if os.path.isfile(path):
+        print "%s is FILE\nGoing in parent dir %s" % (path, os.path.dirname(path))
+        path = os.path.dirname(path)
     os.chdir(path)
 
 
-def create_dir(path):
-    os.makedirs(path)
+def mkdir(path):
+    if os.path.exists(path):
+        print "%s already exists" % path
+    else:
+        os.makedirs(path)
+
+
+def gg(pattern):
+    """
+    :param pattern: the pattern to recursively search for
+    :return: output of "git grep pattern"
+    """
+    gg = subprocess.Popen(['git', 'grep', pattern],
+                           stdout=subprocess.PIPE,
+                           stderr=subprocess.STDOUT)
+    return gg.stdout.readlines()
 
 
 # ===============================================================================
@@ -41,7 +58,7 @@ def get_path(path=None):
     :param path: relative path
     :return: absolute path (default is current dir)
     """
-    path = os.path.abspath(path) or os.path.dirname(__file__)
+    path = os.path.abspath(path or os.path.dirname(__file__))
     return os.path.join(os.path.dirname(path), path)
 
 
@@ -97,17 +114,7 @@ def print_tree(path=None):
         print "FILES :"
         for f in files:
             print get_path(f)
-        # f = files[0]
-        # print files[0]
-        # print f
-        # # open(f)
-        # f_abs = get_path(f)
-        # print get_path(f)
-        # print f_abs
-        # # open(f_abs)
 
-
-        #     if "=" in line:
         #         print "FOUND LINE : %s" % line
         # f = open(get_dir(files[0]))
         # for line in f:
@@ -116,48 +123,60 @@ def print_tree(path=None):
 #       METHODS FOR IMPORT ANALYSIS     -   Try to make it more generic
 # ===============================================================================
 
-def list_imports(filepath):
-    """
-    :param filepath: root dir for the search (must be a git rep)
-    :return: output of "git grep ' import '"
-    """
-    os.chdir(os.path.dirname(filepath))
-    gg = subprocess.Popen(['git', 'grep', ' import '],
-                           stdout=subprocess.PIPE,
-                           stderr=subprocess.STDOUT)
-    return gg.stdout.readlines()
 
 
-def get_dependencies(text, dict={}, detailed=False):
+# def list_file_imports(text, dict={}, detailed=False):
+def list_file_imports(dirpath, dict={}, detailed=False):
     """
-    :param text: text to build dict from. Expected format : PATH:IMPORT_PY
+    Executes a "gg ' import '" in given dirpath
+    :param dirpath: The dir to analyze from.
     :param dict: dict to build. Default is empty, use this to add entries to a dict
     :param detailed: True for more details
-    :return: { import_statement => [filepath, filepath, ...] } dict. Represents all files importing from a same source
+    :return: { import_statement => [dirpath, dirpath, ...] } dict. Represents all files importing from a same source
     """
+
+    # check path, call git grep
+    cd(dirpath)
+    text = gg(' import ')
+
+    # PARSE GIT GREP RESULT
+    # line = "/dirpath/to/file: from x.y.z import Xyz"
     for line in text:
-        # Split : " filepath : from *** import *** "
         splitline = line.split(':')
 
         filepath = splitline[0]
         impor = splitline[1].rstrip()
 
-        # Parsing import statement
-        # If selective (from * import *), drop detailed imports
+        # FORMATTING 
+        # detailed=True: "from * import *" STATEMENT
+        # detailed=False: "from *" STATEMENT
         if re.match(r"from", impor):
             if detailed:
                 impor = re.sub(r"\s*\(\s*$", '', impor)
             else:
                 impor = re.sub(r"import.*$", '', impor)
 
-        # Filling object
+        # Fill object { import => [filepath1, ..., filepathN] }
         if impor in dict:
             if filepath not in dict[impor]:
-                dict[impor].add(filepath)   # PKG => filepath not linked yet
+                dict[impor].add(filepath)
         else:
-            dict[impor] = {filepath}    # dict[PKG] doesn't exist
+            dict[impor] = {filepath}
 
     return dict
+
+
+def print_proj_dependencies(path):
+    # Specific funcs : git grep import & build dict={'import_statement'=>['path', ...]}
+    import_dict = list_file_imports(filepath, detailed=False)
+
+    # Print import <=> [module, module, ...]
+    print "DIC CONTENT : "
+    for key in sorted(import_dict.iterkeys()):
+        print "\n%s" % key
+        # TODO option -s (short) to skip one-liners
+        for filename in sorted(import_dict[key]):
+            print "    %s" % filename
 
 
 # ===============================================================================
@@ -182,7 +201,17 @@ if __name__ == 'nope':
 
 
 if __name__ == '__main__':
-    filepath = get_path()
+    print "LAUNCHING MAIN"
+
+    try:
+        filepath = get_path(sys.argv[1])
+    except:
+        filepath = get_path()
+
+    #===========================================================================
+    # print "ARG %s" % argv[1]
+    #===========================================================================
+
     print "PATH %s" % filepath
 
     # ===========================================================================
@@ -192,14 +221,5 @@ if __name__ == '__main__':
     for file in iter_files(filepath):
         print "ITER %s" % file
 
-    # Specific funcs : git grep import & build dict={'import_statement'=>['path', ...]}
-    out = list_imports(filepath)
-    dep = get_dependencies(out, detailed=False)
+    print_proj_dependencies(filepath)
 
-    # Print import <=> [module, module, ...]
-    print "DIC CONTENT : "
-    for key in sorted(dep.iterkeys()):
-        print "\n%s" % key
-        # TODO option -s (short) to skip one-liners
-        for filename in sorted(dep[key]):
-            print "    %s" % filename
