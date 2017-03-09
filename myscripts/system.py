@@ -45,14 +45,6 @@ def gg(pattern):
 # ===============================================================================
 
 
-def dir_content(path=None):
-    """
-    :param path: working directory by default
-    :return: list of files in path
-    """
-    return os.listdir(get_path(path))
-
-
 def get_path(path=None):
     """
     :param path: relative path
@@ -60,6 +52,14 @@ def get_path(path=None):
     """
     path = os.path.abspath(path or os.path.dirname(__file__))
     return os.path.join(os.path.dirname(path), path)
+
+
+def dir_content(path=None):
+    """
+    :param path: working directory by default
+    :return: list of files in path
+    """
+    return os.listdir(get_path(path))
 
 
 def iter_files(path, filter=' ', dirs=False, depth=0):
@@ -81,23 +81,6 @@ def iter_files(path, filter=' ', dirs=False, depth=0):
             for d in dirs:
                 if filter not in parent:
                     yield os.path.join(parent, d)
-
-
-# ===============================================================================
-#       CANT HANDLE ITER_FILES
-# ===============================================================================
-# def list_files(filepath, file_list=[]):
-#     if os.path.isfile(filepath):
-#         filepath = os.path.dirname(filepath)
-#
-#     root, root_dir = os.path.split(filepath)
-#
-#     for parent, dirs, files in os.walk(filepath):
-#         for f in files:
-#             root, dir = os.path.split(parent)
-#             file_list.append(os.path.join(root_dir, os.path.join(dir, f)))
-#
-#     return file_list
 
 
 def print_tree(path=None):
