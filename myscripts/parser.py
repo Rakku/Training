@@ -41,12 +41,6 @@ class Formatter(argparse.RawDescriptionHelpFormatter):
 
 
 # ===============================================================================
-# STATIC PARSER OBJECT
-
-PARSER = parser()
-
-
-# ===============================================================================
 # STATIC STRINGS
 
 DESCR = '''
@@ -66,13 +60,16 @@ def parser():
     :return: parser object
     """
 
-    '''
     # PARSER OBJECT
     p = argparse.ArgumentParser(description=DESCR,
                                 formatter_class=Formatter,
                                 epilog=HELP)
-    '''
 
+    p.add_argument('-m', '--module',
+                   metavar='PATHS',
+                   help='search for a specific module pattern',
+                   nargs='+',
+                   default=[],)
     '''
     # POSITIONAL ARGS
     p.add_argument('filepath',
@@ -95,4 +92,10 @@ def parser():
 
     # t = p.add_argument_group('output options')
 
-    # return p
+    return p
+
+
+# ===============================================================================
+# STATIC PARSER OBJECT
+
+PARSER = parser()

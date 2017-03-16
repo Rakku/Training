@@ -4,6 +4,7 @@ import os
 import sys
 import re
 import subprocess
+from parser import PARSER as p 
 
 
 # ===============================================================================
@@ -28,6 +29,22 @@ def mkdir(path):
     else:
         os.makedirs(path)
 
+def grep(pattern, stdin):
+    """
+    Python version of grep
+    :param pattern: the pattern to search for
+    :param stdin: the text to search through
+    :return: subprocess.Popen.stdout object. Must be called with read() or 
+    readlines() method for example (see gg)
+    """
+    #===========================================================================
+    # subprocess.call(('grep', pattern), stdin=stdin)
+    #===========================================================================
+    g = subprocess.Popen(['grep', pattern],
+                         stdin=stdin,
+                         stdout=subprocess.PIPE,
+                         stderr=subprocess.STDOUT)
+    return g.stdout
 
 def gg(pattern):
     """
@@ -47,8 +64,8 @@ def gg(pattern):
 
 def get_path(path=None):
     """
-    :param path: relative path
-    :return: absolute path (default is current dir)
+    :param path: relative path to file or dir (default is current dir)
+    :return: absolute path.
     """
     path = os.path.abspath(path or os.path.dirname(__file__))
     return os.path.join(os.path.dirname(path), path)
@@ -102,13 +119,28 @@ def print_tree(path=None):
         # f = open(get_dir(files[0]))
         # for line in f:
 
+
 # ===============================================================================
-#       METHODS FOR IMPORT ANALYSIS     -   Try to make it more generic
+#         METHODS FOR INHERITANCE ANALYSIS
 # ===============================================================================
 
 
+def list_classes(dirpath):
+    pass
 
-# def list_file_imports(text, dict={}, detailed=False):
+#===============================================================================
+#         METHODS FOR CLASS SKELETON
+#===============================================================================
+
+def class_skel(filepath):
+    cat = subprocess.Popen(('cat', get_path(filepath)), stdout=subprocess.PIPE)
+    print grep('class\|def', cat.stdout).read()
+
+# ===============================================================================
+#         METHODS FOR IMPORT ANALYSIS
+# ===============================================================================
+
+
 def list_file_imports(dirpath, dict={}, detailed=False):
     """
     Executes a "gg ' import '" in given dirpath
@@ -162,6 +194,14 @@ def print_proj_dependencies(path):
             print "    %s" % filename
 
 
+#===============================================================================
+# METHOD FOR NEW NTFC TESTS
+#===============================================================================
+
+def ntfc_test(test_name):
+    cmd = "ntfc its dut=vm:router=vm:tnl=vm:tnr=vm %s -d dut=ubuntu-16.04/6wg -V DEBUG -b FAIL -f html" % test_name
+    subprocess.call(cmd, shell=True)
+
 # ===============================================================================
 #       MAIN
 # ===============================================================================
@@ -186,23 +226,31 @@ if __name__ == 'nope':
 if __name__ == '__main__':
     print "LAUNCHING MAIN"
 
-    try:
-        filepath = get_path(sys.argv[1])
-    except:
-        filepath = get_path()
+#===============================================================================
+#     try:
+#         filepath = get_path(sys.argv[1])
+#     except:
+#         filepath = get_path()
+# 
+#     print "PATH %s" % filepath
+# 
+#     class_skel(filepath)
+#===============================================================================
+
+    test_name = sys.argv[1]
+    ntfc_test(test_name)
 
     #===========================================================================
-    # print "ARG %s" % argv[1]
-    #===========================================================================
-
-    print "PATH %s" % filepath
-
-    # ===========================================================================
     # List of all files in chosen tree
-    # ===========================================================================
-    print " ALL FILES CONSIDERED : "
-    for file in iter_files(filepath):
-        print "ITER %s" % file
+    #===========================================================================
+    #===========================================================================
+    # print " ALL FILES CONSIDERED : "
+    # for file in iter_files(filepath):
+    #     print "ITER %s" % file
+    #===========================================================================
 
-    print_proj_dependencies(filepath)
-
+    # Kinda useless in the end...
+    # But good basis for smthg smarter
+    #===========================================================================
+    # print_proj_dependencies(filepath)
+    #===========================================================================
