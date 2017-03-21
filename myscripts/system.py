@@ -1,3 +1,4 @@
+from macpath import abspath
 __author__ = 'Kazesoushi'
 
 import os
@@ -64,9 +65,10 @@ def gg(pattern):
 
 def get_path(path=None):
     """
-    :param path: relative path to file or dir (default is current dir)
+    :param path: relative path to file or dir (default is root dir)
     :return: absolute path.
     """
+    #path = os.path.abspath(path or os.path.dirname(__file__))
     path = os.path.abspath(path or os.path.dirname(__file__))
     return os.path.join(os.path.dirname(path), path)
 
@@ -124,9 +126,46 @@ def print_tree(path=None):
 #         METHODS FOR INHERITANCE ANALYSIS
 # ===============================================================================
 
+def list_file_classes(filepath):
+    parents = []
+    children = []
 
-def list_classes(dirpath):
+    cat = subprocess.Popen(('cat', get_path(filepath)), stdout=subprocess.PIPE)
+    for line in grep('class', cat.stdout).readlines():
+        pattern = re.compile(r"class (?P<child>.*)\((?P<parent>.*)\)", re.VERBOSE)
+        match = pattern.match(line)
+
+        if match:
+            child = match.group("child")
+            parent = match.group("parent")
+            print line
+            print "parent : %s" % parent
+            parents.append(parent)
+            print "child : %s" % child
+            children.append(child)
+            build_tree(parent, child)
+        else:
+            pass
+            #print "\nFail REGEX : %s" % line
+
+def build_tree(parent, child):
     pass
+
+def list_classes(path=None):
+    """
+    """
+    path = get_path(path)
+    if os.path.isdir(path):
+        for root, dirs, files in os.walk(path):
+            for file in files:
+                if ".py" not in file:
+                    continue
+                file = os.path.join(root, file)
+                print file
+                list_file_classes(file)
+    elif os.path.isfile(path):
+        print file
+        list_file_classes(path)
 
 #===============================================================================
 #         METHODS FOR CLASS SKELETON
@@ -237,8 +276,13 @@ if __name__ == '__main__':
 #     class_skel(filepath)
 #===============================================================================
 
-    test_name = sys.argv[1]
-    ntfc_test(test_name)
+    try:
+        arg = sys.argv[1]
+    except:
+        arg = None
+    list_classes(arg)
+
+    # ntfc_test(test_name)
 
     #===========================================================================
     # List of all files in chosen tree
